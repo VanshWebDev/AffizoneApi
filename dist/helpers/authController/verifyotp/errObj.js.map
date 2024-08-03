@@ -1,0 +1,1 @@
+{"version":3,"file":"errObj.js","sourceRoot":"","sources":["../../../../src/helpers/authController/verifyotp/errObj.ts"],"names":[],"mappings":";;;AAAa,QAAA,kBAAkB,GAAG;IAChC,MAAM,EAAE,GAAG;IACX,OAAO,EAAE,aAAa;IACtB,WAAW,EAAE,IAAI;CAClB,CAAC;AAEW,QAAA,iBAAiB,GAAG;IAC/B,MAAM,EAAE,GAAG;IACX,OAAO,EAAE,8BAA8B;IACvC,WAAW,EAAE,IAAI;CAClB,CAAC"}

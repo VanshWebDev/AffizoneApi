@@ -1,0 +1,1 @@
+{"version":3,"file":"resObj.js","sourceRoot":"","sources":["../../../../src/helpers/authController/forgetpwd/resObj.ts"],"names":[],"mappings":";;;AAAa,QAAA,cAAc,GAAG;IAC5B,UAAU,EAAE,GAAG;IACf,OAAO,EAAE;QACP,OAAO,EAAE,yBAAyB;QAClC,SAAS,EAAE,IAAI;KAChB;CACF,CAAC;AAEW,QAAA,iBAAiB,GAAG;IAC/B,UAAU,EAAE,GAAG;IACf,OAAO,EAAE;QACP,OAAO,EAAE,uCAAuC;QAChD,SAAS,EAAE,KAAK;KACjB;CACF,CAAC"}
