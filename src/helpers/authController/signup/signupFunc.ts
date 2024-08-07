@@ -21,7 +21,6 @@ interface payload {
 export const saveIntoDB = async (payload: payload) => {
   const user = {
     email: payload.email,
-    sub: payload.sub,
     name: payload.name,
     picture: payload.picture,
   };
@@ -30,8 +29,6 @@ export const saveIntoDB = async (payload: payload) => {
     existUser.updateOne(user);
     return;
   }
-  await PwdVerify.create(user);
-  // req.session.payload = user;
 };
 
 /**

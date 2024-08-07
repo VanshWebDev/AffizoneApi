@@ -1,8 +1,10 @@
 import { Response } from "express";
 
-const { OurErr } = require("../../utils/error/errorClass");
-const { ifPasswordNotMatch } = require("../authController/login/errObj");
-
+import { OurErr } from "../../utils/error/errorClass";
+import { ifPasswordNotMatch } from "../authController/login/errObj";
+import { OAuth2Client, TokenPayload } from "google-auth-library";
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const client = new OAuth2Client(CLIENT_ID);
 /**
  * Sends an HTTP response with the specified status code and JSON object.
  *
@@ -20,6 +22,15 @@ interface resObj {
 export const sendRes = (res: Response, resObj: resObj) => {
   const { statusCode, jsonObj } = resObj;
   res.status(statusCode).json(jsonObj);
+};
+
+export const getPayloadFromGoogle = async (
+  token: string
+): Promise<TokenPayload> => {
+  const obj = { idToken: token, audience: CLIENT_ID };
+  const ticket = await client.verifyIdToken(obj);
+  const payload = ticket.getPayload() as TokenPayload;
+  return payload;
 };
 
 /**

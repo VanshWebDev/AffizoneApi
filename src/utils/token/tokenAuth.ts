@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
 
-const {
+import {
   createCookie,
-  saveIntoDB,
-} = require("../../helpers/authController/signup/signupFunc");
-const { generateJwtToken } = require("./jwt.utils");
+} from "../../helpers/authController/signup/signupFunc";
+import { generateJwtToken } from "./jwt.utils"
 
 /**
  * Handles JWT token authentication by generating a JWT, setting it as a cookie,
@@ -40,10 +39,9 @@ export const tokenAuth = async (
 
   const token = generateJwtToken(email); //check in payload?.email condition
 
-  createCookie(res, cookieName, token);
+  if(token) createCookie(res, cookieName, token);
 
-  if (isNewUser) await saveIntoDB(payload);
+  // if (isNewUser) await saveIntoDB(payload);
 
   res.status(statusCode).json({ message: message, newUser: isNewUser });
 };
-

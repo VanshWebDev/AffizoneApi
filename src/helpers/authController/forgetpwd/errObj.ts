@@ -13,3 +13,8 @@ export const forgetpwdIfUsername = {
   message: "enter only mail",
   forFrontend: true,
 };
+export const couldntSendOtp = {
+  status: 400,
+  message: "couldn't send otp",
+  forFrontend: true,
+};

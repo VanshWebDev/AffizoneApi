@@ -1,7 +1,7 @@
 export const resIfEmailSent = {
   statusCode: 200,
   jsonObj: {
-    message: "Email sent successfully",
+    message: "OTP sent successfully",
     emailSent: true,
   },
 };
@@ -9,7 +9,7 @@ export const resIfEmailSent = {
 export const resIfEmailNotSent = {
   statusCode: 200,
   jsonObj: {
-    message: "Email could't sent try after sometime",
+    message: "OTP could't sent try after sometime",
     emailSent: false,
   },
 };
