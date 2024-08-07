@@ -22,6 +22,8 @@ import {
 } from "../helpers/authController/signup/resObj";
 import { resIfPasswordMatch } from "../helpers/authController/login/resObj";
 import { verifyotpIfPwdSuccessfullyReset } from "../helpers/authController/verifyotp/resObj";
+import { ifOtpMatch } from "../helpers/authController/verifyOtpForSignup/resObj";
+import { resIfUserNew } from "../helpers/authController/signupWithEmail/resObj";
 
 // ---------------- Error objects ---------------------------
 import {
@@ -39,6 +41,20 @@ import {
   forgetpwdIfUsername,
 } from "../helpers/authController/forgetpwd/errObj";
 import { ifPayloadNot } from "../helpers/authController/signup/errObj";
+import {
+  ifEmailAlreadySent,
+  ifEmailNot,
+} from "../helpers/authController/sendOtpForEmailVerification/errObj";
+import {
+  ifOtpNotMatch,
+  ifOtpWithEmailNot,
+} from "../helpers/authController/verifyOtpForSignup/errObj";
+import {
+  ifBothPwdNotEqual,
+  ifUserWithEmailExist,
+} from "../helpers/authController/signupWithEmail/errObj";
+import { ifUserWithEmailNotExist } from "../helpers/authController/signinWithGoogle/errObj";
+import { ifUserWithThisEmailExist } from "../helpers/authController/signupWithGoogle/errObj";
 
 // ---------------- Helpers functions --------------------------
 import {
@@ -50,6 +66,7 @@ import {
   sendRes,
   checkIfMail,
   checkPassword,
+  getPayloadFromGoogle,
 } from "../helpers/reusable/reuableFunc";
 import {
   generateOtp,
@@ -66,7 +83,7 @@ import {
 // ---------------- Mongoose models -----------------------
 import { OTP } from "../models/otp.model";
 import { User } from "../models/user.model";
-
+import { VerifyEmailOtp } from "../models/verifyEmailOtps.model";
 // ---------------- .env variables --------------------------
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
@@ -196,7 +213,7 @@ export const forgetpassword = async (req: Request, res: Response) => {
     }
   });
 
-  await sendEmail(res, userEmail.email, otp);
+  await sendEmail(res, userEmail.email, otp, "forgetpassword");
 };
 
 export const verifyOtp = async (req: Request, res: Response) => {
@@ -224,6 +241,75 @@ export const logout = async (req: Request, res: Response) => {
   res.status(200).send({ message: "Logout successfully" });
 };
 
-export const  Ram = async (req:Request, res:Response) =>{
-    res.send("Jai Shri Ram 🍀");
+export const sendOtpForEmailVerification = async (
+  req: Request,
+  res: Response
+) => {
+  const { email } = req.body;
+
+  if (!email) throw new OurErr(ifEmailNot);
+
+  const otp = generateOtp();
+
+  const createdOtp = await VerifyEmailOtp.findOne({ email });
+
+  if (createdOtp) throw new OurErr(ifEmailAlreadySent);
+
+  await sendEmail(res, email, otp, "Email verification");
+
+  await VerifyEmailOtp.create({ email, otp });
+};
+
+export const verifyOtpForSignup = async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  const createdOtp = await VerifyEmailOtp.findOne({ email });
+
+  if (!createdOtp) throw new OurErr(ifOtpWithEmailNot);
+
+  if (createdOtp.otp !== otp) throw new OurErr(ifOtpNotMatch);
+
+  sendRes(res, ifOtpMatch);
+};
+
+export const signupWithEmail = async (req: Request, res: Response) => {
+  const { email, password, confirmPassword, affiname } = req.body;
+
+  if (password !== confirmPassword) throw new OurErr(ifBothPwdNotEqual);
+
+  const checkEmail = await User.findOne({ email });
+
+  if (checkEmail) throw new OurErr(ifUserWithEmailExist);
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  await User.create({ email: email }, { password: hashedPassword });
+
+  await VerifyEmailOtp.deleteOne({ email });
+};
+
+export const signinWithGoogle = async (req: Request, res: Response)=>{
+  const { token } = req.body;
+
+  const payload = await getPayloadFromGoogle(token);
+
+  const { email } = payload;
+
+  const user = await User.findOne({ email });
+
+  if(!user) throw new OurErr(ifUserWithEmailNotExist);
+
+ if(email) tokenAuth(req, res, email, {cookieName: 'token', statusCode:200, message:"signup successfull", isNewUser:false});
+}
+
+export const signupWithGoogle = async (req: Request, res: Response) =>{
+  const { token } = req.body;
+
+  const payload = await getPayloadFromGoogle(token);
+
+  const { email, name } = payload;
+
+  const user = await User.findOne({ email });
+
+  if(user) throw new OurErr(ifUserWithThisEmailExist);
 }

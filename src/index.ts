@@ -37,7 +37,7 @@ mongoose
   .catch((err) => {
     throw new OurErr({
       status: 500,
-      message: "Server not connected🐞",
+      message: `Server not connected🐞 ${err}`,
       forFrontend: true,
     });
   });
