@@ -15,3 +15,9 @@ export const loginErr1 = {
   message: "Password does not match",
   forFrontend: true,
 };
+
+export const ifUserDidntCreatedPassword = {
+  status: 400,
+  message: "first create your password By forget password",
+  forFrontend: true,
+}

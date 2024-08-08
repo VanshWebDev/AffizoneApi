@@ -30,13 +30,13 @@ export const encryptJwt = (msg: string, secretKey: string) => {
  */
 
 export const decryptJwt = (
-  msg: string,
+  toekn: string,
   secretKey: string
 ): JwtPayload | string => {
   // Check if both the secret key and JWT secret are provided and valid
   if (secretKey && jwtSecret && secretKey == secretKey) {
     // Perform AES decryption on the message using the provided secret key
-    let bytes = CryptoJS.AES.decrypt(msg, secretKey);
+    let bytes = CryptoJS.AES.decrypt(toekn, secretKey);
 
     return jwt.verify(
       bytes.toString(CryptoJS.enc.Utf8),
