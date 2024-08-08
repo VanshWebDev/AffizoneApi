@@ -2,9 +2,9 @@ import { Response } from "express";
 import { couldntSendOtp } from "./errObj";
 import { OurErr } from "../../../utils/error/errorClass";
 
-const nodemailer = require("nodemailer");
-const { sendRes } = require("../../reusable/reuableFunc");
-const { resIfEmailSent } = require("./resObj");
+import nodemailer from "nodemailer";
+import { sendRes } from "../../reusable/reuableFunc";
+import { resIfEmailSent } from "./resObj";
 
 export const generateOtp = () => {
   const otp = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit OTP

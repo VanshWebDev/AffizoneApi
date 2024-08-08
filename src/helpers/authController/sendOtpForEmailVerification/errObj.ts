@@ -9,3 +9,9 @@ export const ifEmailAlreadySent = {
   message: "OTP already send",
   forFrontend: true,
 };
+
+export const ifTheUserRequestingOtpAlreadyExist = {
+  status: 400,
+  message: "An user with this email already exist",
+  forFrontend: true,
+}

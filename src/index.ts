@@ -34,13 +34,7 @@ const port = 3000;
 mongoose
   .connect(mongodbUrl)
   .then(() => console.log("connected to the server🍀"))
-  .catch((err) => {
-    throw new OurErr({
-      status: 500,
-      message: `Server not connected🐞 ${err}`,
-      forFrontend: true,
-    });
-  });
+  .catch((err) => console.log(`Server not connected🐞 ${err}`));
 
 // Middleware Configuration
 app.use(cors(corsOptions));
@@ -70,7 +64,7 @@ app.use(
     const { status = 500, message = "some error occured", forFrontend } = err;
 
     if (forFrontend) res.status(status).json({ message: message });
-    console.log("🐞 Err Middlaware:", message);
+    console.log("🐞 Err Middlaware:", err);
     next();
   }
 );

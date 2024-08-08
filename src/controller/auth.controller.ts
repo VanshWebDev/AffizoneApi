@@ -30,7 +30,11 @@ import {
   checkTokenErr,
   checkTokenIfUserNot,
 } from "../helpers/authController/checktoken/errObj";
-import { loginErr, loginErr1 } from "../helpers/authController/login/errObj";
+import {
+  ifUserDidntCreatedPassword,
+  loginErr,
+  loginErr1,
+} from "../helpers/authController/login/errObj";
 import {
   createPasswordErr,
   ifClientPayloadNot,
@@ -44,6 +48,7 @@ import { ifPayloadNot } from "../helpers/authController/signup/errObj";
 import {
   ifEmailAlreadySent,
   ifEmailNot,
+  ifTheUserRequestingOtpAlreadyExist,
 } from "../helpers/authController/sendOtpForEmailVerification/errObj";
 import {
   ifOtpNotMatch,
@@ -54,7 +59,10 @@ import {
   ifUserWithEmailExist,
 } from "../helpers/authController/signupWithEmail/errObj";
 import { ifUserWithEmailNotExist } from "../helpers/authController/signinWithGoogle/errObj";
-import { ifUserWithThisEmailExist } from "../helpers/authController/signupWithGoogle/errObj";
+import {
+  ifGooglePayloadNot,
+  ifUserWithThisEmailExist,
+} from "../helpers/authController/signupWithGoogle/errObj";
 
 // ---------------- Helpers functions --------------------------
 import {
@@ -79,11 +87,13 @@ import {
   getUserIfUsername,
   resIfUserObj,
 } from "../helpers/authController/checktoken/checktokenFunc";
+import { generateAffiname } from "../helpers/authController/signupWithGoogle/signupWithGoogleFunc";
 
 // ---------------- Mongoose models -----------------------
 import { OTP } from "../models/otp.model";
 import { User } from "../models/user.model";
 import { VerifyEmailOtp } from "../models/verifyEmailOtps.model";
+import { ifSignupSuccessWithGoogle } from "../helpers/authController/signupWithGoogle/resObj";
 // ---------------- .env variables --------------------------
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
@@ -116,14 +126,16 @@ export const login = async (req: Request, res: Response) => {
       "+password"
     );
   } else {
-    checkuser = await User.findOne({ username: emailOrUsername }).select(
+    checkuser = await User.findOne({ affiname: emailOrUsername }).select(
       "+password"
     );
   }
-
-  if (!checkuser || !checkuser?.password) {
+  console.log("i am exist", checkuser);
+  if (!checkuser) {
     throw new OurErr(loginErr);
-  } else {
+  }
+  if (!checkuser.password) throw new OurErr(ifUserDidntCreatedPassword);
+  else {
     const isMatch = await bcrypt.compare(password, checkuser.password);
     if (isMatch) {
       tokenAuth(req, res, emailOrUsername, resIfPasswordMatch);
@@ -136,23 +148,21 @@ export const login = async (req: Request, res: Response) => {
 export const checkToken = async (req: Request, res: Response) => {
   const token = req.signedCookies.token;
 
-  if (!token) {
-    throw new OurErr(checkTokenErr); //Error if token not found in frontend.
-  } else {
-    const payload = decryptJwt(token, cryptoSecret) as JwtPayload;
+  if (!token) throw new OurErr(checkTokenErr); //Error if token not found in frontend.
 
-    const { email } = payload;
+  const payload = decryptJwt(token, cryptoSecret) as JwtPayload;
 
-    let user;
+  const { email } = payload;
 
-    if (checkIfMail(payload.email)) user = await getUserIfEamil(email);
-    //
-    else user = await getUserIfUsername(email);
+  let user;
 
-    if (!user) throw new OurErr(checkTokenIfUserNot);
-    //
-    else sendRes(res, resIfUserObj(user));
-  }
+  if (checkIfMail(payload.email)) user = await getUserIfEamil(email);
+  //
+  else user = await getUserIfUsername(email);
+
+  if (!user) throw new OurErr(checkTokenIfUserNot);
+  //
+  else sendRes(res, resIfUserObj(user));
 };
 
 export const createpassword = async (req: Request, res: Response) => {
@@ -249,6 +259,10 @@ export const sendOtpForEmailVerification = async (
 
   if (!email) throw new OurErr(ifEmailNot);
 
+  const existUser = await User.findOne({ email });
+
+  if (existUser) throw new OurErr(ifTheUserRequestingOtpAlreadyExist);
+
   const otp = generateOtp();
 
   const createdOtp = await VerifyEmailOtp.findOne({ email });
@@ -288,7 +302,7 @@ export const signupWithEmail = async (req: Request, res: Response) => {
   await VerifyEmailOtp.deleteOne({ email });
 };
 
-export const signinWithGoogle = async (req: Request, res: Response)=>{
+export const signinWithGoogle = async (req: Request, res: Response) => {
   const { token } = req.body;
 
   const payload = await getPayloadFromGoogle(token);
@@ -297,19 +311,33 @@ export const signinWithGoogle = async (req: Request, res: Response)=>{
 
   const user = await User.findOne({ email });
 
-  if(!user) throw new OurErr(ifUserWithEmailNotExist);
+  if (!user) throw new OurErr(ifUserWithEmailNotExist);
 
- if(email) tokenAuth(req, res, email, {cookieName: 'token', statusCode:200, message:"signup successfull", isNewUser:false});
-}
+  if (email)
+    tokenAuth(req, res, email, {
+      cookieName: "token",
+      statusCode: 200,
+      message: "signup successfull",
+      isNewUser: false,
+    });
+};
 
-export const signupWithGoogle = async (req: Request, res: Response) =>{
+export const signupWithGoogle = async (req: Request, res: Response) => {
   const { token } = req.body;
 
   const payload = await getPayloadFromGoogle(token);
 
-  const { email, name } = payload;
+  if (!payload || !payload.email) throw new OurErr(ifGooglePayloadNot);
+
+  const { email, name, picture } = payload;
 
   const user = await User.findOne({ email });
 
-  if(user) throw new OurErr(ifUserWithThisEmailExist);
-}
+  if (user) throw new OurErr(ifUserWithThisEmailExist);
+
+  const affiname = await generateAffiname(email);
+
+  const newUser = await User.create({ affiname, email, name, picture });
+
+  if (newUser) tokenAuth(req, res, email, ifSignupSuccessWithGoogle);
+};

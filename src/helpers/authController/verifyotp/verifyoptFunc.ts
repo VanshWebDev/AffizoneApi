@@ -1,8 +1,8 @@
-const OTP = require("../../../models/otp.model");
-const { OurErr } = require("../../../utils/error/errorClass");
-const { verifyotpIfInvalid, verifyotpIfExpire } = require("./errObj");
+import { OTP } from "../../../models/otp.model";
+import { OurErr } from "../../../utils/error/errorClass";
+import { verifyotpIfInvalid, verifyotpIfExpire } from "./errObj";
 
-export const chkOtp = async (otp:string, userEmail:string) => {
+export const chkOtp = async (otp: string, userEmail: string) => {
   // Attempt to find the OTP record for the user
   const otpRecord = await OTP.findOne({ email: userEmail });
 

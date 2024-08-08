@@ -15,7 +15,7 @@ const VerifyEmailOtpSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       default: Date.now,
-      index: { expires: "1m" },
+      index: { expires: "5m" },
     }, // Expires in 10 minutes
   },
   { timestamps: true }
