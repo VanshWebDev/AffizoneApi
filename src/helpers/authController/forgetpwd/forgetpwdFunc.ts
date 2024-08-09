@@ -4,14 +4,13 @@ import { OurErr } from "../../../utils/error/errorClass";
 
 import nodemailer from "nodemailer";
 import { sendRes } from "../../reusable/reuableFunc";
-import { resIfEmailSent } from "./resObj";
 
 export const generateOtp = () => {
   const otp = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit OTP
   return otp;
 };
 
-export const sendEmail = async (res:Response, email:string, otp:number, key:string):Promise<void> => {
+export const sendEmail = async (res:Response, email:string, otp:number, key:string):Promise<boolean> => {
   // Create a transporter object with SMTP settings
   let transporter = nodemailer.createTransport({
     service: "Gmail", // Example: Gmail, you can use any email service provider
@@ -35,6 +34,6 @@ export const sendEmail = async (res:Response, email:string, otp:number, key:stri
 
   // Send the email
   let info = await transporter.sendMail(mailOptions);
-  if (info.accepted.length > 0) sendRes(res, resIfEmailSent);
+  if (info.accepted.length > 0) return true;
   else throw new OurErr(couldntSendOtp);
 };

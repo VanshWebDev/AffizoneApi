@@ -5,6 +5,8 @@ dotenv.config();
 export const corsOptions = {
   credentials: true,
   origin: [
+     process.env.FRONTEND_URL,
+     "https://affizone.netlify.app/",
     "https://dorevise.netlify.app",
     "http://localhost:5173",
     "http://192.168.43.139:5173",
