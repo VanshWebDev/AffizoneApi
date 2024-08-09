@@ -23,7 +23,9 @@ import {
 import { resIfPasswordMatch } from "../helpers/authController/login/resObj";
 import { verifyotpIfPwdSuccessfullyReset } from "../helpers/authController/verifyotp/resObj";
 import { ifOtpMatch } from "../helpers/authController/verifyOtpForSignup/resObj";
-import { resIfUserNew } from "../helpers/authController/signupWithEmail/resObj";
+import { ifUserCreatedSuccessfully } from "../helpers/authController/signupWithEmail/resObj";
+import { resIfEmailSent } from "../helpers/authController/forgetpwd/resObj";
+import { ifUserWithSameEmailAlreadyExist } from "../helpers/authController/sendOtpForEmailVerification/resObj";
 
 // ---------------- Error objects ---------------------------
 import {
@@ -93,7 +95,10 @@ import { generateAffiname } from "../helpers/authController/signupWithGoogle/sig
 import { OTP } from "../models/otp.model";
 import { User } from "../models/user.model";
 import { VerifyEmailOtp } from "../models/verifyEmailOtps.model";
-import { ifSignupSuccessWithGoogle } from "../helpers/authController/signupWithGoogle/resObj";
+import {
+  ifSignupSuccessWithGoogle,
+  ifUserWithEmailAlreadyExist,
+} from "../helpers/authController/signupWithGoogle/resObj";
 // ---------------- .env variables --------------------------
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
@@ -130,7 +135,7 @@ export const login = async (req: Request, res: Response) => {
       "+password"
     );
   }
-  console.log("i am exist", checkuser);
+
   if (!checkuser) {
     throw new OurErr(loginErr);
   }
@@ -200,7 +205,6 @@ export const checkUsernameAvailablity = async (req: Request, res: Response) => {
   }
 };
 
-// Password reset handler
 export const forgetpassword = async (req: Request, res: Response) => {
   const { emailOrUsername } = req.body;
 
@@ -208,34 +212,55 @@ export const forgetpassword = async (req: Request, res: Response) => {
 
   let userEmail;
 
-  if (isEmail)
-    userEmail = await User.findOne({ email: emailOrUsername }).select("email");
+  if (isEmail) userEmail = await User.find({ email: emailOrUsername });
   else throw new OurErr(forgetpwdIfUsername);
 
-  // throw err if user not exist in DB
-  if (!userEmail) throw new OurErr(forgetpwdIfUserNot);
+  if (!userEmail || userEmail.length == 0) throw new OurErr(forgetpwdIfUserNot);
 
   const otp = generateOtp();
 
-  await OTP.create({ email: userEmail.email, otp: otp }).catch((err: any) => {
-    if (err.code === 11000) {
-      throw new OurErr(forgetpwdIfDuplicatekay);
+  await OTP.create({ email: userEmail[0].email, otp: otp }).catch(
+    (err: any) => {
+      if (err.code === 11000) {
+        throw new OurErr(forgetpwdIfDuplicatekay);
+      }
     }
-  });
+  );
 
-  await sendEmail(res, userEmail.email, otp, "forgetpassword");
+  const isOtpSent = await sendEmail(
+    res,
+    userEmail[0].email,
+    otp,
+    "forgetpassword"
+  );
+
+  if (userEmail.length == 1) {
+    if (isOtpSent) sendRes(res, resIfEmailSent);
+  } else {
+    res
+      .status(200)
+      .send({
+        message: "OTP Send successfully",
+        multipleUser: true,
+        affinameList: userEmail,
+        emailSent: true,
+      });
+  }
 };
 
 export const verifyOtp = async (req: Request, res: Response) => {
-  const { otp, newPassword, confirmPassword, userEmail } = req.body;
-
-  await chkOtp(otp, userEmail);
+  const { otp, newPassword, confirmPassword, email, selectedUser } = req.body;
+  console.log(req.body);
+  await chkOtp(otp, email);
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-  await User.updateOne({ email: userEmail }, { password: hashedPassword });
+  await User.updateOne(
+    { affiname: selectedUser },
+    { password: hashedPassword }
+  );
 
-  await OTP.deleteOne({ email: userEmail });
+  await OTP.deleteOne({ email });
 
   sendRes(res, verifyotpIfPwdSuccessfullyReset);
 };
@@ -255,21 +280,27 @@ export const sendOtpForEmailVerification = async (
   req: Request,
   res: Response
 ) => {
-  const { email } = req.body;
-
+  const { email, wantToCreateNewAcc} = req.body;
+  console.log(wantToCreateNewAcc)
   if (!email) throw new OurErr(ifEmailNot);
 
   const existUser = await User.findOne({ email });
 
-  if (existUser) throw new OurErr(ifTheUserRequestingOtpAlreadyExist);
-
+  if(!wantToCreateNewAcc){
+    if (existUser) {
+      sendRes(res, ifUserWithSameEmailAlreadyExist);
+      return;
+    }
+  }
   const otp = generateOtp();
 
   const createdOtp = await VerifyEmailOtp.findOne({ email });
 
   if (createdOtp) throw new OurErr(ifEmailAlreadySent);
 
-  await sendEmail(res, email, otp, "Email verification");
+  const isOtpSent = await sendEmail(res, email, otp, "Email verification");
+  
+  if(isOtpSent) sendRes(res, resIfEmailSent);
 
   await VerifyEmailOtp.create({ email, otp });
 };
@@ -288,16 +319,18 @@ export const verifyOtpForSignup = async (req: Request, res: Response) => {
 
 export const signupWithEmail = async (req: Request, res: Response) => {
   const { email, password, confirmPassword, affiname } = req.body;
-
+  console.log(req.body)
   if (password !== confirmPassword) throw new OurErr(ifBothPwdNotEqual);
 
   const checkEmail = await User.findOne({ email });
 
-  if (checkEmail) throw new OurErr(ifUserWithEmailExist);
+  // if (checkEmail) throw new OurErr(ifUserWithEmailExist);
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  await User.create({ email: email }, { password: hashedPassword });
+  await User.create({ affiname, email,password: hashedPassword });
+ 
+  tokenAuth(req, res, affiname, ifUserCreatedSuccessfully)
 
   await VerifyEmailOtp.deleteOne({ email });
 };
@@ -323,7 +356,7 @@ export const signinWithGoogle = async (req: Request, res: Response) => {
 };
 
 export const signupWithGoogle = async (req: Request, res: Response) => {
-  const { token } = req.body;
+  const { token, wantToCreateNewAcc } = req.body;
 
   const payload = await getPayloadFromGoogle(token);
 
@@ -331,9 +364,13 @@ export const signupWithGoogle = async (req: Request, res: Response) => {
 
   const { email, name, picture } = payload;
 
-  const user = await User.findOne({ email });
-
-  if (user) throw new OurErr(ifUserWithThisEmailExist);
+  if (!wantToCreateNewAcc) {
+    const user = await User.findOne({ email });
+    if (user) {
+      sendRes(res, ifUserWithEmailAlreadyExist);
+      return;
+    }
+  }
 
   const affiname = await generateAffiname(email);
 

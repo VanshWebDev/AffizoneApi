@@ -6,7 +6,6 @@ const UserSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
     },
     affiname: {
       type: String,
@@ -22,7 +21,6 @@ const UserSchema = new mongoose.Schema(
     },
     picture: {
       type: String,
-      required: true,
     },
   },
   { timestamps: true }

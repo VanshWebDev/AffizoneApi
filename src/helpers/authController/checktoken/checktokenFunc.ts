@@ -4,8 +4,8 @@ import { Types } from "mongoose";
 interface user {
   _id: Types.ObjectId;
   email: string;
-  affiname?: string | null;
-  picture: string;
+  affiname?: string;
+  picture?: string | null;
 }
 
 export const resIfUserObj = (user: user) => {

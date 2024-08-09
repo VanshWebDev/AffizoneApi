@@ -1,6 +1,7 @@
-export const resIfUserNew = {
+
+export const ifUserCreatedSuccessfully = {
   cookieName: "token",
   statusCode: 200,
-  message: "User signup successfully 🍀",
+  message: "User created successfully 🍀",
   isNewUser: true,
 };
